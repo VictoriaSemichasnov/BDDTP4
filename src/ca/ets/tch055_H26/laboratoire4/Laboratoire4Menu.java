@@ -80,8 +80,42 @@ public class Laboratoire4Menu {
      */
     public static void listerServicesMedicaux() {
         // TODO Question B
-
-        System.out.println("Option 1 : listerServicesMedicaux() n'est pas implémentée");
+    	
+    	// Transformer la requete SQL sous forme de chaine de caracteres
+    	String requete = "SELECT code_service, nom_service, tarif_unitaire, statut_service " +
+    				   " FROM Service_Medical "+
+    				   " ORDER BY code_service ASC";
+    	
+    	try {
+    		//Creation d'un statement pour envoyer et executer la requete SQL
+    		Statement stmt = connexion.createStatement();
+    		java.sql.ResultSet rs = stmt.executeQuery(requete);
+    		
+    		//Formatage pour rendre le tableau plus propre
+    		System.out.println(String.format("%-10s %-30s %-10s %-20s", "Code", "Nom du service", "Tarif", "Statut"));
+            System.out.println("--------------------------------------------------------------------------------");
+    		
+            //Boucle qui nous permet d'afficher les donnee de la base
+    		while (rs.next()) {
+    			String code = rs.getString("code_service");
+    			String nom = rs.getString("nom_service");
+    			float tarif = rs.getFloat("tarif_unitaire");
+    			String statut = rs.getString("statut_service");
+    			
+    		//Formatage du tableau a nouveau	
+    			System.out.println(String.format("%-10s %-30s %-10.2f %-20s", code, nom, tarif, statut));
+            }
+    		
+    		rs.close();
+    		stmt.close();
+    		//Gerer les exceptions si jamais
+    	} catch(java.sql.SQLException e) {
+    		System.out.println("Erreur lors de la recuperation des informations sur le service" + e.getMessage());
+    	}
+    	//Pause avant de revenir au menu
+    	System.out.println("\nAppuyer sur ENTER pour continuer...");
+    	new java.util.Scanner(System.in).nextLine();
+    		
     }
 
     /**
