@@ -58,22 +58,13 @@ public class Laboratoire4Menu {
 
         Connection une_connexion = null;
 
-        try{
-        	
-       
+        try {
         	//Création de la connexion 
-        	une_connexion = DriverManager.getConnection(
-        			"jdbc:oracle:thin:@localhost:1521:xe",
-        		    "Sophia",
-        		    "1234"
-        	);
-        	
-        	} catch (SQLException e){
-        	e.getStackTrace();
+        	une_connexion = DriverManager.getConnection(uri, login, password);
+        	} catch (SQLException e) {
+        		System.out.println("Erreur de connexion à la base de données : " + e.getMessage());
         	}
 
-
-       
         return une_connexion;
     }
 
@@ -166,7 +157,7 @@ public class Laboratoire4Menu {
     	        int resultat = ps.executeUpdate();
 
     	        if (resultat > 0) {
-    	            System.out.println("Service médical ajouté");
+    	            System.out.println("Service médical ajouté avec succès");
     	        } else {
     	            System.out.println("Échec de l'ajout du service médical");
     	        }
@@ -624,10 +615,10 @@ public class Laboratoire4Menu {
     public static void main(String args[]) {
 
         // Mettre les informations de votre compte sur SGBD Oracle
-        String username = "equipeXXX";
-        String motDePasse = "XXXXXXXX";
+        String username = "Sophia";
+        String motDePasse = "1234";
 
-        String uri = "jdbc:oracle:thin:@url_serveur:num_port:sid";
+        String uri = "jdbc:oracle:thin:@localhost:1521:xe";
 
         // Appel de la méthode pour établir la connexion avec le SGBD
         connexion = connexionBDD(username, motDePasse, uri);
