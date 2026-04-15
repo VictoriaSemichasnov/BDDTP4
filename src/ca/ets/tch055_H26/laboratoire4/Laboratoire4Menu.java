@@ -59,7 +59,7 @@ public class Laboratoire4Menu {
         Connection une_connexion = null;
 
         try {
-        	//Création de la connexion 
+        	//Création de la connexion à la base de données Oracle
         	une_connexion = DriverManager.getConnection(uri, login, password);
         	} catch (SQLException e) {
         		System.out.println("Erreur de connexion à la base de données : " + e.getMessage());
@@ -501,7 +501,7 @@ public class Laboratoire4Menu {
             // Préparation de la requête SQL
             java.sql.PreparedStatement pstmt = connexion.prepareStatement(sql);
 
-           // Parcours du tableau d'évaluations
+           // Utilisation d'un batch pour optimiser les insertions multiples
             for (ServiceEvaluationData eval : listEvaluation) {
 
             	// Associer les valeurs de l’objet aux paramètres de la requête
