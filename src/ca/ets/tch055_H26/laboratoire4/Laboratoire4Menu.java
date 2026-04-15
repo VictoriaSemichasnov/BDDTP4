@@ -195,37 +195,54 @@ public class Laboratoire4Menu {
      */
     public static void enregistrerEvaluation(ServiceEvaluationData[] listEvaluation) {
         
+    	// Vérifie si le tableau est vide ou nul
     	if (listEvaluation == null || listEvaluation.length == 0) {
             System.out.println("Aucune évaluation à enregistrer.");
+            System.out.println("Appuyer sur ENTER pour continuer...");
+            new Scanner(System.in).nextLine();
             return;
         }
 
+    	// Requête SQL pour insérer une évaluation (sans id car généré automatiquement par trigger)
         String sql = "INSERT INTO Evaluation_Service (no_patient, code_service, note, commentaire) VALUES (?, ?, ?, ?)";
 
         try {
+        	// Désactiver l'auto-commit pour gérer la transaction manuellement
             connexion.setAutoCommit(false);
 
+            // Préparation de la requête SQL
             java.sql.PreparedStatement pstmt = connexion.prepareStatement(sql);
 
+           // Parcours du tableau d'évaluations
             for (ServiceEvaluationData eval : listEvaluation) {
 
+            	// Associer les valeurs de l’objet aux paramètres de la requête
                 pstmt.setInt(1, eval.no_patient);
                 pstmt.setString(2, eval.code_service);
                 pstmt.setInt(3, eval.note);
                 pstmt.setString(4, eval.commentaire);
 
+             // Ajout de l'insertion au batch
                 pstmt.addBatch();
             }
-
+        
+            // Exécution de toutes les insertions en une seule fois 
             int[] resultats = pstmt.executeBatch();
+            
+           // Validation de la transaction
             connexion.commit();
 
+          // Affichage du nombre d'insertions réussies
             System.out.println(resultats.length + " évaluations enregistrées avec succès.");
 
             pstmt.close();
+            
+         // Réactiver l’auto-commit après le traitement
+            connexion.setAutoCommit(true);
 
         } catch (SQLException e) {
             try {
+            	// Annulation des insertions en cas d'erreur
                 connexion.rollback();
             } catch (SQLException ex) {
                 System.out.println("Erreur rollback : " + ex.getMessage());
@@ -234,6 +251,7 @@ public class Laboratoire4Menu {
             System.out.println("Erreur lors de l'insertion : " + e.getMessage());
         }
 
+     // Pause pour permettre à l’utilisateur de lire le message
         System.out.println("Appuyer sur ENTER pour continuer...");
         new Scanner(System.in).nextLine();
     }
