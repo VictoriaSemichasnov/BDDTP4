@@ -1,7 +1,10 @@
 package ca.ets.tch055_H26.laboratoire4;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
@@ -81,7 +84,6 @@ public class Laboratoire4Menu {
      * Les données doivent être récupérées à partir de la table Service_Medical.
      */
     public static void listerServicesMedicaux() {
-        // TODO Question B
     	
     	// Transformer la requete SQL sous forme de chaine de caracteres
     	String requete = "SELECT code_service, nom_service, tarif_unitaire, statut_service " +
@@ -127,10 +129,58 @@ public class Laboratoire4Menu {
      * La méthode doit lire les données à partir de la console puis effectuer l'insertion.
      */
     public static void ajouterServiceMedical() {
-        // TODO Question C
+    		
+    	    Scanner scanner = new Scanner(System.in);
 
-        System.out.println("Option 2 : ajouterServiceMedical() n'est pas implémentée");
-    }
+    	    try {
+    	        System.out.print("Veuillez saisir le code du service : ");
+    	        String codeService = scanner.nextLine();
+
+    	        System.out.print("Veuillez saisir le nom du service : ");
+    	        String nomService = scanner.nextLine();
+
+    	        System.out.print("Veuillez saisir la description : ");
+    	        String description = scanner.nextLine();
+
+    	        System.out.print("Veuillez saisir le tarif unitaire : ");
+    	        float tarifUnitaire = Float.parseFloat(scanner.nextLine());
+
+    	        System.out.print("Veuillez saisir le statut du service (Actif / Retire / Suspendu / Temporairement_indisponible) : ");
+    	        String statutService = scanner.nextLine();
+
+    	        System.out.print("Veuillez saisir l'identifiant de la catégorie : ");
+    	        int idCategorie = Integer.parseInt(scanner.nextLine());
+
+    	        String sql = "INSERT INTO Service_Medical "
+    	                   + "(code_service, nom_service, description, tarif_unitaire, statut_service, id_categorie) "
+    	                   + "VALUES (?, ?, ?, ?, ?, ?)";
+
+    	        PreparedStatement ps = connexion.prepareStatement(sql);
+    	        ps.setString(1, codeService);
+    	        ps.setString(2, nomService);
+    	        ps.setString(3, description);
+    	        ps.setFloat(4, tarifUnitaire);
+    	        ps.setString(5, statutService);
+    	        ps.setInt(6, idCategorie);
+
+    	        int resultat = ps.executeUpdate();
+
+    	        if (resultat > 0) {
+    	            System.out.println("Service médical ajouté");
+    	        } else {
+    	            System.out.println("Échec de l'ajout du service médical");
+    	        }
+
+    	        ps.close();
+
+    	    } catch (Exception e) {
+    	        System.out.println("Erreur lors de l'ajout du service médical : " + e.getMessage());
+    	    }
+
+    	    System.out.println("Appuyer sur ENTER pour continuer...");
+    	    scanner.nextLine();
+    	}
+    
 
     /**
      * Option 3 du menu
@@ -180,9 +230,119 @@ public class Laboratoire4Menu {
      * @param numFacture numéro de la facture
      */
     public static void enregistrerPaiement(int numFacture) {
-        // TODO Question F
 
-        System.out.println("Option 5 : enregistrerPaiement() n'est pas implémentée");
+        Scanner scanner = new Scanner(System.in);
+
+        try {
+            // 1. Vérifier facture
+            String sqlFacture = "SELECT total_a_payer FROM Facture WHERE no_facture = ?";
+            PreparedStatement psFacture = connexion.prepareStatement(sqlFacture);
+            psFacture.setInt(1, numFacture);
+
+            ResultSet rs = psFacture.executeQuery();
+
+            if (!rs.next()) {
+                System.out.println("La facture n'existe pas.");
+                System.out.println("Appuyer sur ENTER pour continuer...");
+                scanner.nextLine();
+                return;
+            }
+
+            double totalFacture = rs.getDouble("total_a_payer");
+
+            rs.close();
+            psFacture.close();
+
+            //si montant déjà payé
+            double dejaPaye = calculerPaiements(numFacture, false);
+
+            //Saisie d'Unutilisateur
+            System.out.print("ID paiement : ");
+            int idPaiement = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Date paiement (AAAA-MM-JJ) : ");
+            Date datePaiement = Date.valueOf(scanner.nextLine());
+
+            System.out.print("Montant : ");
+            double montant = Double.parseDouble(scanner.nextLine());
+
+            // Vérification dépassement 
+            if (dejaPaye + montant > totalFacture) {
+                System.out.println("Erreur : le paiement dépasse le montant total de la facture.");
+                System.out.println("Appuyer sur ENTER pour continuer...");
+                scanner.nextLine();
+                return;
+            }
+
+            System.out.print("Type de paiement (espece / cheque / carte) : ");
+            String type = scanner.nextLine().toLowerCase();
+
+            // mettre des valeurs par défaut (null)
+            Integer noCheque = null;
+            String institution = null;
+            String noCarte = null;
+            Date dateExp = null;
+
+            // Selon le type de paiement
+            if (type.equals("cheque")) {
+                System.out.print("Numéro du chèque : ");
+                noCheque = Integer.parseInt(scanner.nextLine());
+
+                System.out.print("Institution bancaire : ");
+                institution = scanner.nextLine();
+
+            } else if (type.equals("carte")) {
+                System.out.print("Numéro carte : ");
+                noCarte = scanner.nextLine();
+
+                System.out.print("Date expiration (AAAA-MM-JJ) : ");
+                dateExp = Date.valueOf(scanner.nextLine());
+            }
+
+            //  INSERT
+            String sql = "INSERT INTO Paiement "
+                    + "(id_paiement, date_paiement, montant, no_cheque, institution_bancaire, "
+                    + "no_carte_credit, date_expiration, type_paiement, no_facture) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+            PreparedStatement ps = connexion.prepareStatement(sql);
+
+            ps.setInt(1, idPaiement);
+            ps.setDate(2, datePaiement);
+            ps.setDouble(3, montant);
+
+            // gestion NULL propre
+            if (noCheque != null) ps.setInt(4, noCheque);
+            else ps.setNull(4, java.sql.Types.INTEGER);
+
+            if (institution != null) ps.setString(5, institution);
+            else ps.setNull(5, java.sql.Types.VARCHAR);
+
+            if (noCarte != null) ps.setString(6, noCarte);
+            else ps.setNull(6, java.sql.Types.VARCHAR);
+
+            if (dateExp != null) ps.setDate(7, dateExp);
+            else ps.setNull(7, java.sql.Types.DATE);
+
+            ps.setString(8, type);
+            ps.setInt(9, numFacture);
+
+            int res = ps.executeUpdate();
+
+            if (res > 0) {
+                System.out.println("Paiement enregistré avec succès.");
+            } else {
+                System.out.println("Échec de l'enregistrement.");
+            }
+
+            ps.close();
+
+        } catch (Exception e) {
+            System.out.println("Erreur : " + e.getMessage());
+        }
+
+        System.out.println("Appuyer sur ENTER pour continuer...");
+        scanner.nextLine();
     }
 
     /**
