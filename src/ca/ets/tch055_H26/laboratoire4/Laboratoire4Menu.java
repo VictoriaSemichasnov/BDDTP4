@@ -24,11 +24,11 @@ import java.util.Scanner;
  ** @author Ben Abdhellah Amal
  ** @author Pamella Kissok
  * 
- * @equipe : XX
- * @author
- * @author
- * @author
- * @author
+ * @equipe : D
+ * @author: Lisa Toursal
+ * @author: Youssef Tahenti
+ * @author:Sophia Sebastianelli
+ * @author:Victoria Semichasnov 
  */
 public class Laboratoire4Menu {
 
@@ -189,9 +189,80 @@ public class Laboratoire4Menu {
      * @param numConsultation numéro de la consultation à afficher
      */
     public static void afficherConsultation(int numConsultation) {
-        // TODO Question D
+    	
+    		try {
 
-        System.out.println("Option 3 : afficherConsultation() n'est pas implémentée");
+    		// 1. Vérifier si la consultation existe + infos patient
+    		String queryInfo = """
+    		SELECT p.nom, p.prenom, p.telephone,
+    		c.id_consultation, c.date_heure_consult
+    		FROM Consultation c
+    		JOIN Patient p ON c.no_patient = p.no_patient
+    		WHERE c.id_consultation = ?
+    		""";
+
+    		java.sql.PreparedStatement ps1 = connexion.prepareStatement(queryInfo);
+    		ps1.setInt(1, numConsultation);
+    		java.sql.ResultSet rs1 = ps1.executeQuery();
+
+    		if (!rs1.next()) {
+    		System.out.println("Consultation inexistante.");
+    		System.out.println("Appuyer sur ENTER pour continuer...");
+    	    new java.util.Scanner(System.in).nextLine();
+    		return;
+    		}
+
+    		System.out.println("Patient : " + rs1.getString("nom") + " " + rs1.getString("prenom"));
+    		System.out.println("Téléphone : " + rs1.getString("telephone"));
+    		System.out.println("No Consultation : " + rs1.getInt("id_consultation"));
+    		System.out.println("Date : " + rs1.getTimestamp("date_heure_consult"));
+    		System.out.println("--------------------------------------------------");
+
+    		// 2. Liste des services (IMPORTANT: si la table n'a PAS de quantité → on met 1)
+    		String queryServices = """
+    		SELECT sm.code_service, sm.nom_service, sm.tarif_unitaire
+    		FROM Service_Medical sm
+    		JOIN Service_Medical_Consultation smc
+    		ON sm.code_service = smc.code_service
+    		WHERE smc.id_consultation = ?
+    		""";
+
+    		java.sql.PreparedStatement ps2 = connexion.prepareStatement(queryServices);
+    		ps2.setInt(1, numConsultation);
+    		java.sql.ResultSet rs2 = ps2.executeQuery();
+
+    		double total = 0;
+
+    		System.out.printf("%-10s %-25s %-10s %-10s %-10s\n",
+    		"Code", "Nom Service", "Tarif", "Qté", "Total");
+
+    		while (rs2.next()) {
+    		String code = rs2.getString("code_service");
+    		String nom = rs2.getString("nom_service");
+    		double tarif = rs2.getDouble("tarif_unitaire");
+
+    		int qte = 1; 
+    		double totalPartiel = tarif * qte;
+    		total += totalPartiel;
+
+    		System.out.printf("%-10s %-25s %-10.2f %-10d %-10.2f\n",
+    		code, nom, tarif, qte, totalPartiel);
+    		}
+
+    		System.out.println("--------------------------------------------------");
+    		System.out.println("Total consultation : " + total + " $");
+
+    		System.out.println("Appuyer sur ENTER pour continuer...");
+    		new java.util.Scanner(System.in).nextLine();
+
+    		rs1.close();
+    		ps1.close();
+    		rs2.close();
+    		ps2.close();
+    		
+    		} catch (Exception e) {
+    		e.printStackTrace();
+    		}
     }
 
     /**
@@ -426,9 +497,16 @@ public class Laboratoire4Menu {
     public static boolean fermetureConnexion() {
         boolean resultat = false;
 
-        // TODO Question A
+        try {
+            if (connexion != null && !connexion.isClosed()) {
+                connexion.close();
+                resultat = true;
+            }
+        } catch (Exception e) {
+            System.out.println("Erreur lors de la fermeture de la connexion.");
+            e.printStackTrace();
+        }
 
-        System.out.println("Option 0 : fermetureConnexion() n'est pas implémentée");
 
         return resultat;
     }
