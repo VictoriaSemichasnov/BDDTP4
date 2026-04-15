@@ -276,11 +276,62 @@ public class Laboratoire4Menu {
     public static float calculerPaiements(int numFacture, boolean affichage) {
         float resultat = -1;
 
-        // TODO Question E
+        try {
+            // Vérifier si la facture existe
+            String sqlFacture = "SELECT no_facture FROM Facture WHERE no_facture = ?";
+            PreparedStatement psFacture = connexion.prepareStatement(sqlFacture);
+            psFacture.setInt(1, numFacture);
 
-        System.out.println("Option 4 : calculerPaiements() n'est pas implémentée");
+            ResultSet rsFacture = psFacture.executeQuery();
+
+            if (!rsFacture.next()) {
+                if (affichage) {
+                    System.out.println("La facture n'existe pas.");
+                    System.out.println("Appuyer sur ENTER pour continuer...");
+                    new Scanner(System.in).nextLine();
+                }
+
+                rsFacture.close();
+                psFacture.close();
+                return -1;
+            }
+
+            rsFacture.close();
+            psFacture.close();
+
+            // Calculer la somme des paiements effectués pour cette facture
+            String sqlPaiements = "SELECT NVL(SUM(montant), 0) AS total_paye "
+                                + "FROM Paiement "
+                                + "WHERE no_facture = ?";
+
+            PreparedStatement psPaiements = connexion.prepareStatement(sqlPaiements);
+            psPaiements.setInt(1, numFacture);
+
+            ResultSet rsPaiements = psPaiements.executeQuery();
+
+            if (rsPaiements.next()) {
+                resultat = rsPaiements.getFloat("total_paye");
+            } else {
+                resultat = 0;
+            }
+
+            rsPaiements.close();
+            psPaiements.close();
+
+            // Affichage seulement si demandé
+            if (affichage) {
+                System.out.println("Montant total des paiements pour la facture " 
+                        + numFacture + " : " + String.format("%.2f", resultat) + " $");
+                System.out.println("Appuyer sur ENTER pour continuer...");
+                new Scanner(System.in).nextLine();
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Erreur lors du calcul des paiements : " + e.getMessage());
+        }
 
         return resultat;
+
     }
 
     /**
@@ -305,7 +356,7 @@ public class Laboratoire4Menu {
         Scanner scanner = new Scanner(System.in);
 
         try {
-            // 1. Vérifier facture
+            // Vérifier si la facture existe
             String sqlFacture = "SELECT total_a_payer FROM Facture WHERE no_facture = ?";
             PreparedStatement psFacture = connexion.prepareStatement(sqlFacture);
             psFacture.setInt(1, numFacture);
@@ -316,25 +367,20 @@ public class Laboratoire4Menu {
                 System.out.println("La facture n'existe pas.");
                 System.out.println("Appuyer sur ENTER pour continuer...");
                 scanner.nextLine();
+                rs.close();
+                psFacture.close();
                 return;
             }
 
             double totalFacture = rs.getDouble("total_a_payer");
-
             rs.close();
             psFacture.close();
 
-            //si montant déjà payé
+            // Calculer le montant déjà payé
             double dejaPaye = calculerPaiements(numFacture, false);
 
-            //Saisie d'Unutilisateur
-            System.out.print("ID paiement : ");
-            int idPaiement = Integer.parseInt(scanner.nextLine());
-
-            System.out.print("Date paiement (AAAA-MM-JJ) : ");
-            Date datePaiement = Date.valueOf(scanner.nextLine());
-
-            System.out.print("Montant : ");
+            // Saisie du montant 
+            System.out.print("Veuillez saisir le montant du paiement : ");
             double montant = Double.parseDouble(scanner.nextLine());
 
             // Vérification dépassement 
@@ -345,57 +391,77 @@ public class Laboratoire4Menu {
                 return;
             }
 
-            System.out.print("Type de paiement (espece / cheque / carte) : ");
-            String type = scanner.nextLine().toLowerCase();
+            System.out.print("Type de paiement (ESPECE / CHEQUE / CREDIT) : ");
+            String typePaiement = scanner.nextLine().trim().toUpperCase();
+            
+            // Correction si utilisateur écrit carte 
+            if (typePaiement.equals("CARTE")) {
+                typePaiement = "CREDIT";
+            }
+            
+            Date datePaiement = new Date(System.currentTimeMillis());
 
             // mettre des valeurs par défaut (null)
             Integer noCheque = null;
-            String institution = null;
+            String institutionBancaire = null;
             String noCarte = null;
-            Date dateExp = null;
+            Date dateExpiration = null;
+            String typeCarte = null;
 
             // Selon le type de paiement
-            if (type.equals("cheque")) {
+            if (typePaiement.equals("CHEQUE")) {
+            	
                 System.out.print("Numéro du chèque : ");
                 noCheque = Integer.parseInt(scanner.nextLine());
 
                 System.out.print("Institution bancaire : ");
-                institution = scanner.nextLine();
+                institutionBancaire = scanner.nextLine();
 
-            } else if (type.equals("carte")) {
-                System.out.print("Numéro carte : ");
+            } else if (typePaiement.equals("CREDIT")) {
+                System.out.print("Numéro de carte : ");
                 noCarte = scanner.nextLine();
 
                 System.out.print("Date expiration (AAAA-MM-JJ) : ");
-                dateExp = Date.valueOf(scanner.nextLine());
+                dateExpiration = Date.valueOf(scanner.nextLine());
+                
+                System.out.print("Type de carte (VISA / MASTERCARD / AMEX) : ");
+                typeCarte = scanner.nextLine().trim().toUpperCase();
+
+            } else if (!typePaiement.equals("ESPECE")) {
+                System.out.println("Type de paiement invalide.");
+                System.out.println("Appuyer sur ENTER pour continuer...");
+                scanner.nextLine();
+                return;
             }
 
-            //  INSERT
+            // Insertion du paiement
             String sql = "INSERT INTO Paiement "
-                    + "(id_paiement, date_paiement, montant, no_cheque, institution_bancaire, "
-                    + "no_carte_credit, date_expiration, type_paiement, no_facture) "
+                    + "(date_paiement, montant, type_paiement, no_cheque, insitution_bancaire, "
+                    + "no_carte_credit, date_expiration, type_carte_credit, no_facture) "
                     + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             PreparedStatement ps = connexion.prepareStatement(sql);
 
-            ps.setInt(1, idPaiement);
-            ps.setDate(2, datePaiement);
-            ps.setDouble(3, montant);
+            ps.setDate(1, datePaiement);
+            ps.setDouble(2, montant);
+            ps.setString(3, typePaiement);
 
             // gestion NULL propre
             if (noCheque != null) ps.setInt(4, noCheque);
             else ps.setNull(4, java.sql.Types.INTEGER);
 
-            if (institution != null) ps.setString(5, institution);
+            if (institutionBancaire != null) ps.setString(5, institutionBancaire);
             else ps.setNull(5, java.sql.Types.VARCHAR);
 
             if (noCarte != null) ps.setString(6, noCarte);
             else ps.setNull(6, java.sql.Types.VARCHAR);
 
-            if (dateExp != null) ps.setDate(7, dateExp);
+            if (dateExpiration != null) ps.setDate(7, dateExpiration);
             else ps.setNull(7, java.sql.Types.DATE);
+            
+            if (typeCarte != null) ps.setString(8, typeCarte);
+            else ps.setNull(8, java.sql.Types.VARCHAR);
 
-            ps.setString(8, type);
             ps.setInt(9, numFacture);
 
             int res = ps.executeUpdate();
