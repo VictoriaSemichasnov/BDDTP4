@@ -60,8 +60,10 @@ public class Laboratoire4Menu {
        
         	//Création de la connexion 
         	une_connexion = DriverManager.getConnection(
-        	"Victoria", "12345",
-        	"localhost:1521:xe");
+        			"jdbc:oracle:thin:@localhost:1521:xe",
+        		    "Sophia",
+        		    "1234"
+        	);
         	
         	} catch (SQLException e){
         	e.getStackTrace();
@@ -192,9 +194,48 @@ public class Laboratoire4Menu {
      * @param listEvaluation tableau d'objets ServiceEvaluationData
      */
     public static void enregistrerEvaluation(ServiceEvaluationData[] listEvaluation) {
-        // TODO Question G
+        
+    	if (listEvaluation == null || listEvaluation.length == 0) {
+            System.out.println("Aucune évaluation à enregistrer.");
+            return;
+        }
 
-        System.out.println("Option 6 : enregistrerEvaluation() n'est pas implémentée");
+        String sql = "INSERT INTO Evaluation_Service (no_patient, code_service, note, commentaire) VALUES (?, ?, ?, ?)";
+
+        try {
+            connexion.setAutoCommit(false);
+
+            java.sql.PreparedStatement pstmt = connexion.prepareStatement(sql);
+
+            for (ServiceEvaluationData eval : listEvaluation) {
+
+                pstmt.setInt(1, eval.no_patient);
+                pstmt.setString(2, eval.code_service);
+                pstmt.setInt(3, eval.note);
+                pstmt.setString(4, eval.commentaire);
+
+                pstmt.addBatch();
+            }
+
+            int[] resultats = pstmt.executeBatch();
+            connexion.commit();
+
+            System.out.println(resultats.length + " évaluations enregistrées avec succès.");
+
+            pstmt.close();
+
+        } catch (SQLException e) {
+            try {
+                connexion.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Erreur rollback : " + ex.getMessage());
+            }
+
+            System.out.println("Erreur lors de l'insertion : " + e.getMessage());
+        }
+
+        System.out.println("Appuyer sur ENTER pour continuer...");
+        new Scanner(System.in).nextLine();
     }
 
     /**
