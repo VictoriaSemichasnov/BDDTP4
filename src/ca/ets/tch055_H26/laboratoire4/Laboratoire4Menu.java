@@ -235,15 +235,17 @@ public class Laboratoire4Menu {
           // Affichage du nombre d'insertions réussies
             System.out.println(resultats.length + " évaluations enregistrées avec succès.");
 
+          // Fermer le PreparedStatement
             pstmt.close();
             
-         // Réactiver l’auto-commit après le traitement
+          // Réactiver l’auto-commit après le traitement
             connexion.setAutoCommit(true);
 
         } catch (SQLException e) {
             try {
             	// Annulation des insertions en cas d'erreur
                 connexion.rollback();
+                connexion.setAutoCommit(true);
             } catch (SQLException ex) {
                 System.out.println("Erreur rollback : " + ex.getMessage());
             }
