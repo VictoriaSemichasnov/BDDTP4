@@ -615,8 +615,8 @@ public class Laboratoire4Menu {
     public static void main(String args[]) {
 
         // Mettre les informations de votre compte sur SGBD Oracle
-        String username = "Sophia";
-        String motDePasse = "1234";
+        String username = "XXX"; //remis en XXX pour sécurité
+        String motDePasse = "XXX"; //remis en XXX pour sécurité
 
         String uri = "jdbc:oracle:thin:@localhost:1521:xe";
 
